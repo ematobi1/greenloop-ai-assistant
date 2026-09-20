@@ -1,6 +1,6 @@
 [project]
 name = "greenloop-backend"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
@@ -36,6 +36,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

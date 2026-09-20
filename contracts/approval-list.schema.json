@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "greenloop/contracts/approval-list.schema.json",
+  "title": "ApprovalList",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "meta"],
+  "properties": {
+    "data": { "type": "array", "items": { "$ref": "approval.schema.json" } },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total"],
+      "properties": { "total": { "type": "integer", "minimum": 0 } }
+    }
+  }
+}

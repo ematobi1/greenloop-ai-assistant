@@ -1,6 +1,6 @@
 # Backend evals
 
-Phase 1 has no AI model behavior, so there is nothing to evaluate yet. This is a deliberate stub.
+Phases 1 and 2 have no AI model behavior, so there is nothing to evaluate yet. This is a deliberate stub.
 
 ## Strategy (starts in Phase 3)
 
