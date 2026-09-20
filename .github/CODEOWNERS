@@ -1,0 +1,14 @@
+# GreenLoop code owners. Every change needs review from the owner.
+# Approval by any other account or app does not satisfy code owner review.
+
+* @ematobi1
+
+# Security-sensitive paths, listed explicitly so they stay owner-reviewed
+# even if the default rule above is ever narrowed.
+/.github/ @ematobi1
+/CLAUDE.md @ematobi1
+/contracts/ @ematobi1
+/docs/security/ @ematobi1
+/scripts/ @ematobi1
+/services/backend/app/security/ @ematobi1
+/services/backend/alembic/ @ematobi1
