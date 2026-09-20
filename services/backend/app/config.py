@@ -17,9 +17,11 @@ class Settings(BaseSettings):
     )
 
     env: str = "development"
-    version: str = "0.1.0"
+    version: str = "0.2.0"
     log_level: str = "INFO"
     database_url: str = DEFAULT_DATABASE_URL
+    api_token_hash: str = ""
+    allowed_hosts: list[str] = ["127.0.0.1", "localhost"]
     cors_origins: list[str] = ["http://127.0.0.1:5173", "http://localhost:5173"]
 
     @field_validator("log_level")
