@@ -1,4 +1,5 @@
 import json
+import os
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from app.ai.providers.registry import ProviderRegistry
 from app.config import Settings
 from app.main import create_app
 from app.security.token import hash_token
+
+os.environ["GREENLOOP_FILE_PERMISSION_POLICY"] = "off"
 
 CONTRACTS_DIR = Path(__file__).resolve().parents[3] / "contracts"
 TEST_TOKEN = "test-token-for-gate-tests"

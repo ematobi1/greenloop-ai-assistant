@@ -13,7 +13,7 @@ from app.ai.engine import AIEngine
 from app.ai.prompts import PromptManager
 from app.ai.providers.registry import ProviderRegistry, build_registry
 from app.api import ai, approvals, conversations, health
-from app.config import Settings, get_settings
+from app.config import REPO_ROOT, Settings, get_settings
 from app.db import create_db_engine, create_session_factory
 from app.errors import (
     ApiError,
@@ -24,6 +24,7 @@ from app.errors import (
 )
 from app.logging_config import configure_logging
 from app.redaction import Redactor
+from app.security.filesystem import protected_targets, verify_or_raise
 from app.security.hosts import is_allowed_host
 
 logger = structlog.get_logger()
@@ -39,7 +40,12 @@ def create_app(
     )
     configure_logging(settings.log_level, redactor)
 
-    engine = create_db_engine(settings.database_url)
+    enforce = settings.file_permission_policy == "enforce"
+    engine = create_db_engine(settings.database_url, enforce_permissions=enforce)
+    if enforce:
+        verify_or_raise(
+            protected_targets(REPO_ROOT, settings.database_url), check_ancestors_of=REPO_ROOT
+        )
     app = FastAPI(title="GreenLoop", version=settings.version)
     app.state.settings = settings
     app.state.engine = engine

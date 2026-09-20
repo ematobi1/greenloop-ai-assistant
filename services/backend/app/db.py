@@ -5,11 +5,17 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.security.filesystem import ensure_private_directory
 
-def create_db_engine(database_url: str) -> Engine:
+
+def create_db_engine(database_url: str, enforce_permissions: bool = False) -> Engine:
     url = make_url(database_url)
     if url.get_backend_name() == "sqlite" and url.database and url.database != ":memory:":
-        Path(url.database).parent.mkdir(parents=True, exist_ok=True)
+        directory = Path(url.database).parent
+        if enforce_permissions:
+            ensure_private_directory(directory)
+        else:
+            directory.mkdir(parents=True, exist_ok=True)
     return create_engine(url)
 
 

@@ -41,6 +41,7 @@ Copy `.env.example` to `.env` (`setup.ps1` does this). All variables use the `GR
 
 ## Security defaults
 
+- Only your Windows account may modify GreenLoop's files. Startup checks this and refuses to run otherwise (`docs/security/file-permissions.md`).
 - Servers bind to `127.0.0.1` only, and requests with any other `Host` header get 400.
 - Bearer token auth on every endpoint except health. Only the token's hash is stored, and with no token configured the API refuses everything.
 - Every change is written to an audit table with its request ID.

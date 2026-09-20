@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
     )
 
     env: str = "development"
+    file_permission_policy: Literal["enforce", "off"] = "enforce"
     version: str = "0.2.0"
     log_level: str = "INFO"
     database_url: str = DEFAULT_DATABASE_URL

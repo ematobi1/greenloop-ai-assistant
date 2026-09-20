@@ -3,7 +3,6 @@ import json
 import os
 import shutil
 import subprocess
-import tempfile
 import threading
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -20,6 +19,7 @@ from app.ai.providers.base import (
     TextDelta,
 )
 from app.ai.providers.transcript import render_transcript
+from app.security.filesystem import UnsafePermissionsError, ensure_private_directory
 
 logger = structlog.get_logger()
 
@@ -31,28 +31,15 @@ BASE_ENV_NAMES = (
 )
 NEVER_FORWARDED_PREFIX = "GREENLOOP_"
 STDERR_LIMIT = 4096
-SANDBOX_DIRECTORY_NAME = "greenloop-claude-sandbox"
+SANDBOX_RELATIVE_PATH = Path("GreenLoop") / "claude-sandbox"
 FINAL_INSTRUCTION = "Reply as the assistant to the last user turn."
 
 
-def restrict_to_current_user(directory: Path) -> None:
-    """Remove inherited access so only this user (and SYSTEM on Windows) can use the directory."""
-    if os.name != "nt":
-        directory.chmod(0o700)
-        return
-    domain, name = os.environ.get("USERDOMAIN", ""), os.environ.get("USERNAME", "")
-    account = f"{domain}\\{name}" if domain else name
-    completed = subprocess.run(  # noqa: S603
-        [
-            "icacls", str(directory), "/inheritance:r",
-            "/grant:r", f"{account}:(OI)(CI)F", "/grant:r", "SYSTEM:(OI)(CI)F",
-        ],
-        capture_output=True,
-        check=False,
-        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-    )
-    if not account or completed.returncode != 0:
-        raise AiError("unsafe_configuration")
+def default_sandbox_directory() -> Path:
+    """A folder under the user's own profile. Its parents are only writable by this user,
+    unlike the shared temp folder, so another account cannot rename it and plant its own."""
+    base = os.environ.get("LOCALAPPDATA")
+    return (Path(base) if base else Path.home() / ".local" / "share") / SANDBOX_RELATIVE_PATH
 
 
 def clear_directory(directory: Path) -> None:
@@ -130,16 +117,14 @@ class ClaudeCliProvider:
         self.config = config
         self._command = command
         self._env_passthrough = env_passthrough or []
-        self._sandbox_dir = sandbox_dir
-        self._secured = False
+        self._explicit_sandbox = sandbox_dir is not None
+        self._sandbox_dir = sandbox_dir or default_sandbox_directory()
 
     def _sandbox(self) -> Path:
-        if self._sandbox_dir is None:
-            self._sandbox_dir = Path(tempfile.gettempdir()) / SANDBOX_DIRECTORY_NAME
-        self._sandbox_dir.mkdir(parents=True, exist_ok=True)
-        if not self._secured:
-            restrict_to_current_user(self._sandbox_dir)
-            self._secured = True
+        try:
+            ensure_private_directory(self._sandbox_dir, check_ancestors=not self._explicit_sandbox)
+        except UnsafePermissionsError as err:
+            raise AiError("unsafe_configuration") from err
         clear_directory(self._sandbox_dir)
         return self._sandbox_dir
 

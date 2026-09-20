@@ -31,7 +31,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     url = database_url()
-    create_db_engine(url)
+    create_db_engine(url, enforce_permissions=get_settings().file_permission_policy == "enforce")
     section = config.get_section(config.config_ini_section, {})
     section["sqlalchemy.url"] = url
     connectable = engine_from_config(section, prefix="sqlalchemy.", poolclass=pool.NullPool)

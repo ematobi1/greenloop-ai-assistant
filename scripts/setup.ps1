@@ -21,6 +21,10 @@ if (-not (Test-Path $envFile)) {
     Copy-Item (Join-Path $RepoRoot ".env.example") $envFile
 }
 
+Write-Host "Restricting data\, .env, and the Claude sandbox to your account (docs\security\file-permissions.md)"
+& "$PSScriptRoot\secure-permissions.ps1" -Apply
+if ($LASTEXITCODE -ne 0) { throw "Permission check failed. Fix the reported paths before continuing." }
+
 & "$PSScriptRoot\migrate.ps1"
 & "$PSScriptRoot\new-token.ps1" -IfMissing
 Write-Host "Setup complete. Run scripts\dev.ps1 to start GreenLoop."

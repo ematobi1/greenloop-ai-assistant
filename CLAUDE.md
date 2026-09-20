@@ -63,4 +63,5 @@ Out of scope until a later phase is approved: voice, AI agents, integrations, se
 - Human approval is required before any action that changes external systems (later phases enforce this in code).
 - LLM calls, when added, route through the local Claude Code CLI via a self-contained `services/llm/` service, not a hosted API.
 - Every feature ships with gate tests in the same commit.
+- File permissions: the Windows user is the only ordinary account allowed to modify GreenLoop files. Startup verifies this and fails closed. Only a person runs `scripts/secure-permissions.ps1`. AI agents and GreenLoop's own tools must never change file permissions, ownership, or `GREENLOOP_FILE_PERMISSION_POLICY`. See `docs/security/file-permissions.md`.
 - Global rules in `~/.claude/CLAUDE.md` also apply.
