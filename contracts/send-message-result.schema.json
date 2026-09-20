@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "greenloop/contracts/send-message-result.schema.json",
+  "title": "SendMessageResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user_message", "assistant_message"],
+  "properties": {
+    "user_message": { "$ref": "message.schema.json" },
+    "assistant_message": { "$ref": "message.schema.json" }
+  }
+}

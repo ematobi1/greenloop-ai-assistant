@@ -2,6 +2,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.errors import ApiError
+from app.security.principal import LOCAL_PRINCIPAL
 from app.security.token import token_matches
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -21,3 +22,7 @@ def require_token(
             "Missing or invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def get_principal(_: None = Depends(require_token)) -> str:
+    return LOCAL_PRINCIPAL

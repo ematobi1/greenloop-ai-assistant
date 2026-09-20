@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "greenloop/contracts/message.schema.json",
+  "title": "Message",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "conversation_id", "sequence", "role", "content", "status", "provider", "model",
+    "created_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "conversation_id": { "type": "string", "minLength": 1 },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "role": { "enum": ["user", "assistant", "system"] },
+    "content": { "type": "string" },
+    "status": { "enum": ["complete", "incomplete", "failed"] },
+    "provider": { "type": ["string", "null"] },
+    "model": { "type": ["string", "null"] },
+    "created_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$" }
+  }
+}

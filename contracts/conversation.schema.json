@@ -4,10 +4,13 @@
   "title": "Conversation",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "title", "created_at", "updated_at"],
+  "required": ["id", "title", "instructions", "provider", "model", "created_at", "updated_at"],
   "properties": {
     "id": { "type": "string", "minLength": 1 },
     "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "instructions": { "type": ["string", "null"], "maxLength": 2000 },
+    "provider": { "type": ["string", "null"] },
+    "model": { "type": ["string", "null"] },
     "created_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$" },
     "updated_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$" }
   }

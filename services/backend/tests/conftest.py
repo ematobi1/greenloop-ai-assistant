@@ -7,6 +7,9 @@ from fastapi.testclient import TestClient
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
+from app.ai.providers.base import ProviderConfig
+from app.ai.providers.mock import MockProvider
+from app.ai.providers.registry import ProviderRegistry
 from app.config import Settings
 from app.main import create_app
 from app.security.token import hash_token
@@ -43,17 +46,37 @@ def settings(tmp_path) -> Settings:
     return Settings(
         database_url=f"sqlite:///{(tmp_path / 'test.db').as_posix()}",
         api_token_hash=hash_token(TEST_TOKEN),
+        ai_default_provider="mock",
+        ai_enable_mock=True,
+    )
+
+
+def make_mock_provider(timeout_seconds: float = 5.0) -> MockProvider:
+    return MockProvider(
+        ProviderConfig(
+            name="mock",
+            model="mock-1",
+            location="local",
+            timeout_seconds=timeout_seconds,
+            max_retries=0,
+            max_output_tokens=256,
+        )
     )
 
 
 @pytest.fixture
-def app(settings):
+def mock_provider() -> MockProvider:
+    return make_mock_provider()
+
+
+@pytest.fixture
+def app(settings, mock_provider):
     from alembic import command
 
     from tests.migration_helpers import alembic_config
 
     command.upgrade(alembic_config(settings.database_url), "head")
-    return create_app(settings)
+    return create_app(settings, ProviderRegistry({"mock": mock_provider}, "mock"))
 
 
 @pytest.fixture

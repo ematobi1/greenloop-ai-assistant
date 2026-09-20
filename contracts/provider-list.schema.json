@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "greenloop/contracts/provider-list.schema.json",
+  "title": "ProviderList",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "meta"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "location", "model", "available", "detail", "default"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "location": { "enum": ["local", "cloud"] },
+          "model": { "type": "string", "minLength": 1 },
+          "available": { "type": "boolean" },
+          "detail": { "type": "string" },
+          "default": { "type": "boolean" }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total"],
+      "properties": { "total": { "type": "integer", "minimum": 0 } }
+    }
+  }
+}

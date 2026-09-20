@@ -16,6 +16,10 @@ PROTECTED_REQUESTS = [
     ("POST", "/v1/approvals"),
     ("GET", "/v1/approvals/abc"),
     ("POST", "/v1/approvals/abc/decision"),
+    ("GET", "/v1/conversations/abc/messages"),
+    ("POST", "/v1/conversations/abc/messages"),
+    ("GET", "/v1/ai/providers"),
+    ("GET", "/v1/ai/models"),
 ]
 
 

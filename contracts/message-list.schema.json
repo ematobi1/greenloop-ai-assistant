@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "greenloop/contracts/message-list.schema.json",
+  "title": "MessageList",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "meta"],
+  "properties": {
+    "data": { "type": "array", "items": { "$ref": "message.schema.json" } },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total"],
+      "properties": { "total": { "type": "integer", "minimum": 0 } }
+    }
+  }
+}

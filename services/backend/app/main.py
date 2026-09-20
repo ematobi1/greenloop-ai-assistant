@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 
@@ -7,7 +8,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import approvals, conversations, health
+from app.ai.context import ContextBuilder, ContextLimits
+from app.ai.engine import AIEngine
+from app.ai.prompts import PromptManager
+from app.ai.providers.registry import ProviderRegistry, build_registry
+from app.api import ai, approvals, conversations, health
 from app.config import Settings, get_settings
 from app.db import create_db_engine, create_session_factory
 from app.errors import (
@@ -18,20 +23,43 @@ from app.errors import (
     handle_validation_error,
 )
 from app.logging_config import configure_logging
+from app.redaction import Redactor
 from app.security.hosts import is_allowed_host
 
 logger = structlog.get_logger()
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, providers: ProviderRegistry | None = None
+) -> FastAPI:
     settings = settings or get_settings()
-    configure_logging(settings.log_level)
+    redactor = Redactor(
+        known_secrets=[os.environ.get(name, "") for name in settings.claude_cli_env_passthrough],
+        token_hash=settings.api_token_hash,
+    )
+    configure_logging(settings.log_level, redactor)
 
     engine = create_db_engine(settings.database_url)
     app = FastAPI(title="GreenLoop", version=settings.version)
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
+    app.state.ai_engine = AIEngine(
+        app.state.session_factory,
+        providers or build_registry(settings),
+        ContextBuilder(
+            PromptManager(settings.ai_prompt_version),
+            redactor,
+            ContextLimits(
+                token_limit=settings.ai_context_token_limit,
+                history_message_limit=settings.ai_history_message_limit,
+                max_output_tokens=settings.ai_max_output_tokens,
+                temperature=settings.ai_temperature,
+            ),
+        ),
+        redactor,
+        settings,
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -72,4 +100,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(conversations.router)
     app.include_router(approvals.router)
+    app.include_router(ai.router)
     return app

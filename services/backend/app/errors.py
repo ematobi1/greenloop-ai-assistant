@@ -17,11 +17,13 @@ class ApiError(Exception):
         code: str,
         message: str,
         headers: dict[str, str] | None = None,
+        fields: dict[str, str] | None = None,
     ):
         self.status_code = status_code
         self.code = code
         self.message = message
         self.headers = headers
+        self.fields = fields
 
 
 def error_response(
@@ -38,7 +40,9 @@ def error_response(
 
 
 async def handle_api_error(request: Request, exc: ApiError) -> JSONResponse:
-    return error_response(exc.status_code, exc.code, exc.message, headers=exc.headers)
+    return error_response(
+        exc.status_code, exc.code, exc.message, fields=exc.fields, headers=exc.headers
+    )
 
 
 async def handle_http_error(request: Request, exc: StarletteHTTPException) -> JSONResponse:
