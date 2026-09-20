@@ -228,13 +228,20 @@ def test_real_grants_to_broad_groups_are_detected(tmp_path, sid):
     assert sid in {p.principal for p in problems if p.kind == "foreign_write"}
 
 
+def assert_only_allowed_principals(directory: Path) -> None:
+    """Required principals present, nothing outside the allowed set. Windows may add the
+    OWNER RIGHTS placeholder on some machines (seen on GitHub runners), which grants nothing."""
+    required = {current_user_sid(), SID_SYSTEM, SID_ADMINISTRATORS}
+    present = {entry.sid for entry in read_acl(directory).entries}
+    assert required <= present <= required | {SID_OWNER_RIGHTS}
+
+
 @windows_only
-def test_a_new_private_directory_has_exactly_the_three_allowed_principals(tmp_path):
+def test_a_new_private_directory_has_only_the_allowed_principals(tmp_path):
     directory = ensure_private_directory(tmp_path / "private")
 
-    entries = read_acl(directory).entries
-    assert {entry.sid for entry in entries} == {current_user_sid(), SID_SYSTEM, SID_ADMINISTRATORS}
-    assert all(not entry.flags & 0x10 for entry in entries), "no inherited entries"
+    assert_only_allowed_principals(directory)
+    assert all(not entry.flags & 0x10 for entry in read_acl(directory).entries), "no inherited"
     assert check_path(directory, Level.PRIVATE) == []
 
 
@@ -407,11 +414,7 @@ def test_startup_creates_the_database_directory_private(tmp_path, monkeypatch):
     create_app(settings)
 
     assert check_path(tmp_path / "db", Level.PRIVATE) == []
-    assert {e.sid for e in read_acl(tmp_path / "db").entries} == {
-        current_user_sid(),
-        SID_SYSTEM,
-        SID_ADMINISTRATORS,
-    }
+    assert_only_allowed_principals(tmp_path / "db")
 
 
 @windows_only
