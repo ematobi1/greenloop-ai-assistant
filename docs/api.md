@@ -41,6 +41,10 @@ Every response carries `X-Request-ID`. The same ID appears in the logs and in `a
 | `GET /v1/conversations` | 200 | Newest first, excludes deleted |
 | `GET /v1/conversations/{id}` | 200 | 404 if missing or deleted |
 | `DELETE /v1/conversations/{id}` | 204 | Soft delete. A second delete returns 404. |
+| `GET /v1/conversations/{id}/messages` | 200 | Oldest first by `sequence`. `limit` 1 to 200 (default 100). |
+| `POST /v1/conversations/{id}/messages` | 200, or a stream | Body `{ "content": "...", "provider": "optional" }`. See below. |
+| `GET /v1/ai/providers` | 200 | Name, location, model, availability, default. Never credentials. |
+| `GET /v1/ai/models?provider=` | 200 | Models each provider reports |
 | `POST /v1/approvals` | 201 | Body `{ "action": "1 to 100 chars", "description": "up to 500 chars" }`. Starts `pending`. |
 | `GET /v1/approvals?status=pending` | 200 | `status` is `pending`, `approved`, or `denied` |
 | `GET /v1/approvals/{id}` | 200 | |
@@ -48,10 +52,45 @@ Every response carries `X-Request-ID`. The same ID appears in the logs and in `a
 
 Approving a request records the decision only. Nothing executes an approved action in Phase 2.
 
+## Sending messages
+
+`POST /v1/conversations/{id}/messages` stores the user message, asks the provider for a reply, and stores it.
+
+- **Plain JSON (default):** returns `{ "user_message": {...}, "assistant_message": {...} }`.
+- **Streaming:** send `Accept: text/event-stream` and read Server-Sent Events. Use `fetch`, not `EventSource`, because the request needs an Authorization header.
+
+| Event | Data |
+|---|---|
+| `message` | `{ "user_message": {...} }`, sent first |
+| `delta` | `{ "text": "..." }`, zero or more |
+| `done` | `{ "assistant_message": {...} }`, last event on success |
+| `error` | `{ "code", "message", "partial_message" }`, last event on failure. `partial_message` is set when some text arrived. |
+
+Message `status` is `complete`, `incomplete` (cut off by an error, timeout, or client disconnect), or `failed`. Only `complete` messages are sent back to the model as history.
+
+Errors found before any output starts (404, 422, bad provider) are ordinary JSON errors, even when streaming was requested. Provider failures on the plain path map to:
+
+| Code | Status |
+|---|---|
+| `AI_TIMEOUT` | 504 |
+| `AI_UNAVAILABLE`, `AI_UNSAFE_CONFIGURATION` | 503 |
+| `AI_REJECTED`, `AI_INVALID_RESPONSE` | 502 |
+| `AI_UNKNOWN_PROVIDER`, `AI_CONTEXT_TOO_LARGE`, `VALIDATION_FAILED` | 422 |
+
+The user message stays stored when the provider fails, so the client can retry.
+
+## Ownership
+
+Every conversation belongs to an owner, currently the fixed principal `local`. Reads, sends, and deletes filter by owner. A conversation owned by someone else returns 404, not 403, so its existence is not revealed.
+
+## Redaction
+
+Text sent to a provider, text returned from one, and log fields pass through a redactor that removes API keys, bearer tokens, JWTs, private keys, `key=value` secrets, and the GreenLoop token itself (recognised by its hash). Stored user messages keep what the user typed.
+
 ## Audit trail
 
-Every successful mutation writes one `audit_events` row in the same transaction: `conversation.create`, `conversation.delete`, `approval.create`, `approval.approved`, `approval.denied`. Reads and failed requests write nothing.
+Every successful mutation writes one `audit_events` row in the same transaction: `conversation.create`, `conversation.delete`, `message.user`, `message.assistant`, `approval.create`, `approval.approved`, `approval.denied`. Reads and failed requests write nothing.
 
 ## Contracts
 
-JSON schemas live in `contracts/` and are checked against live responses by the backend tests: `health`, `conversation`, `conversation-list`, `approval`, `approval-list`, `error`.
+JSON schemas live in `contracts/` and are checked against live responses by the backend tests: `health`, `conversation`, `conversation-list`, `message`, `message-list`, `send-message-result`, `provider-list`, `model-list`, `approval`, `approval-list`, `error`.
