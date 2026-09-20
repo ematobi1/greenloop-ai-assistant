@@ -3,13 +3,22 @@ import uuid
 
 import structlog
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import health
+from app.api import approvals, conversations, health
 from app.config import Settings, get_settings
 from app.db import create_db_engine, create_session_factory
+from app.errors import (
+    ApiError,
+    error_response,
+    handle_api_error,
+    handle_http_error,
+    handle_validation_error,
+)
 from app.logging_config import configure_logging
+from app.security.hosts import is_allowed_host
 
 logger = structlog.get_logger()
 
@@ -27,26 +36,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
+
+    app.add_exception_handler(ApiError, handle_api_error)
+    app.add_exception_handler(StarletteHTTPException, handle_http_error)
+    app.add_exception_handler(RequestValidationError, handle_validation_error)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
         request_id = uuid.uuid4().hex
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(request_id=request_id)
+        request.state.request_id = request_id
         started = time.perf_counter()
-        try:
-            response = await call_next(request)
-        except Exception:
-            logger.error("request_failed", path=request.url.path, exc_info=True)
-            response = JSONResponse(
-                status_code=500,
-                content={
-                    "error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}
-                },
-            )
+        if not is_allowed_host(request.headers.get("host", ""), settings.allowed_hosts):
+            response = error_response(400, "INVALID_HOST", "Host header not allowed")
+        else:
+            try:
+                response = await call_next(request)
+            except Exception:
+                logger.error("request_failed", path=request.url.path, exc_info=True)
+                response = error_response(500, "INTERNAL_ERROR", "Internal server error")
         response.headers["X-Request-ID"] = request_id
         logger.info(
             "request_completed",
@@ -58,4 +70,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return response
 
     app.include_router(health.router)
+    app.include_router(conversations.router)
+    app.include_router(approvals.router)
     return app
