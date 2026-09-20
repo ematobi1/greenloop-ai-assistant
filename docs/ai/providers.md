@@ -75,6 +75,9 @@ A future CLI version that ignores a flag therefore stops GreenLoop instead of si
 ### Other containment
 
 - **Sandbox:** the CLI runs in an empty directory, `%TEMP%\greenloop-claude-sandbox`, never in the repo.
+  - **Permissions:** on first use per process the directory's inherited access is removed (`icacls /inheritance:r`) and only the current user and SYSTEM are granted access (mode `0700` on other systems). `%TEMP%` on a shared machine can grant write access to other accounts, so inheriting it would let another local account plant a `CLAUDE.md` or settings file that the CLI reads. If the permissions cannot be set, the provider refuses to run.
+  - **No accumulation:** the directory is emptied before every run (a warning is logged if anything was there) and again after the process ends, whether the run succeeded, failed, or was cancelled. Sessions are not persisted (`--no-session-persistence`), and no transcript directory for the sandbox appears under `~\.claude`.
+  - **Verified 2026-09-20:** after live requests the directory held 0 entries and its ACL listed only the current user and SYSTEM.
 - **Environment:** the child gets a short allow-list (`PATH`, `USERPROFILE`, `APPDATA`, temp paths, and similar) plus `CLAUDE_CODE_MAX_OUTPUT_TOKENS`. Everything else is dropped.
 - **No shell:** the command is an argument list. `.cmd`, `.bat`, and `.ps1` wrappers are refused.
 - **Prompt on stdin:** conversation text is sent on standard input, so it never appears in the process list. Only the system prompt is on the command line.

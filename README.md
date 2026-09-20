@@ -33,7 +33,7 @@ Open the dashboard and paste the token from `setup.ps1` into the unlock form. Ev
 | `services/frontend` | React, TypeScript, Vite, Tailwind, Vitest tests |
 | `contracts` | JSON schemas shared by both services |
 | `scripts` | PowerShell entry points |
-| `docs` | Architecture notes and API reference |
+| `docs` | Architecture, API reference, AI providers, redaction limits, token storage |
 
 ## Configuration
 

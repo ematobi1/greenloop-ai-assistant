@@ -49,10 +49,14 @@ def main() -> None:
                     "stdin": prompt,
                     "cwd": os.getcwd(),
                     "pid": os.getpid(),
+                    "cwd_entries": sorted(os.listdir(os.getcwd())),
                 },
                 handle,
             )
 
+    if os.environ.get("FAKE_CLAUDE_WRITE"):
+        with open("artifact.txt", "w", encoding="utf-8") as handle:
+            handle.write(prompt)
     if mode == "noinit":
         emit(delta("sneaky"))
         return

@@ -85,7 +85,7 @@ Every conversation belongs to an owner, currently the fixed principal `local`. R
 
 ## Redaction
 
-Text sent to a provider, text returned from one, and log fields pass through a redactor that removes API keys, bearer tokens, JWTs, private keys, `key=value` secrets, and the GreenLoop token itself (recognised by its hash). Stored user messages keep what the user typed.
+Text sent to a provider, text returned from one, and log fields pass through a redactor that removes API keys, bearer tokens, JWTs, private keys, `key=value` secrets, and the GreenLoop token itself (recognised by its hash). Stored user messages keep what the user typed. Redaction is pattern matching and misses unrecognised formats: see `docs/ai/redaction.md`. How the dashboard stores the API token is described in `docs/authentication.md`.
 
 ## Audit trail
 

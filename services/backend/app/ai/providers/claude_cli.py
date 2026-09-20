@@ -35,6 +35,41 @@ SANDBOX_DIRECTORY_NAME = "greenloop-claude-sandbox"
 FINAL_INSTRUCTION = "Reply as the assistant to the last user turn."
 
 
+def restrict_to_current_user(directory: Path) -> None:
+    """Remove inherited access so only this user (and SYSTEM on Windows) can use the directory."""
+    if os.name != "nt":
+        directory.chmod(0o700)
+        return
+    domain, name = os.environ.get("USERDOMAIN", ""), os.environ.get("USERNAME", "")
+    account = f"{domain}\\{name}" if domain else name
+    completed = subprocess.run(  # noqa: S603
+        [
+            "icacls", str(directory), "/inheritance:r",
+            "/grant:r", f"{account}:(OI)(CI)F", "/grant:r", "SYSTEM:(OI)(CI)F",
+        ],
+        capture_output=True,
+        check=False,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    if not account or completed.returncode != 0:
+        raise AiError("unsafe_configuration")
+
+
+def clear_directory(directory: Path) -> None:
+    """Delete everything inside the sandbox so nothing persists between runs."""
+    leftovers = list(directory.iterdir())
+    if leftovers:
+        logger.warning("claude_sandbox_had_files", count=len(leftovers))
+    for entry in leftovers:
+        try:
+            if entry.is_dir() and not entry.is_symlink():
+                shutil.rmtree(entry)
+            else:
+                entry.unlink()
+        except OSError as err:
+            raise AiError("unsafe_configuration") from err
+
+
 def lockdown_arguments(system_prompt: str, model: str) -> list[str]:
     arguments = [
         "-p",
@@ -96,11 +131,16 @@ class ClaudeCliProvider:
         self._command = command
         self._env_passthrough = env_passthrough or []
         self._sandbox_dir = sandbox_dir
+        self._secured = False
 
     def _sandbox(self) -> Path:
         if self._sandbox_dir is None:
             self._sandbox_dir = Path(tempfile.gettempdir()) / SANDBOX_DIRECTORY_NAME
         self._sandbox_dir.mkdir(parents=True, exist_ok=True)
+        if not self._secured:
+            restrict_to_current_user(self._sandbox_dir)
+            self._secured = True
+        clear_directory(self._sandbox_dir)
         return self._sandbox_dir
 
     def _executable(self) -> str:
@@ -143,6 +183,7 @@ class ClaudeCliProvider:
                 yield event
         finally:
             _terminate(process)
+            clear_directory(sandbox)
 
     async def _events(
         self,
