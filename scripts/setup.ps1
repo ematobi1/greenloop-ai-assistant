@@ -22,4 +22,5 @@ if (-not (Test-Path $envFile)) {
 }
 
 & "$PSScriptRoot\migrate.ps1"
+& "$PSScriptRoot\new-token.ps1" -IfMissing
 Write-Host "Setup complete. Run scripts\dev.ps1 to start GreenLoop."

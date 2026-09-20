@@ -23,7 +23,15 @@ It is a professional, security-first, local-first personal AI assistant for Wind
 15. Automated error investigation and self-correction
 16. Automated dependency maintenance and controlled self-recovery
 
-## Current phase: PHASE 1 ONLY
+## Completed: PHASE 1
+
+Application foundation (FastAPI, React, SQLite, Alembic, scripts, CI). Merged to `main`.
+
+## Current phase: PHASE 2 ONLY
+
+Objective: secure API and data foundation. In scope: host validation, local API token auth, core tables (conversations, messages, approvals, audit events, settings), conversation and approval APIs, dashboard unlock screen, conversation list and approvals panel, JSON contracts, docs. Out of scope: any LLM call, chat replies, action execution, voice, agents, integrations.
+
+## Phase 1 scope (reference)
 
 Objective: establish a working application foundation.
 
